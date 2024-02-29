@@ -1,0 +1,13 @@
+[project]
+name = "plane-gs"
+description = "New methods in nerfstudio."
+version = "0.1.0"
+
+dependencies = ["nerfstudio >= 0.3.0"] 
+
+[tool.setuptools.packages.find]
+include = ["plane_gs*"]
+
+[project.entry-points.'nerfstudio.method_configs']
+plane_gs = "plane_gs.plane_gs_configs:plane_gs_method"
+```
