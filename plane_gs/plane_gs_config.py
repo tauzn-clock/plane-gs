@@ -11,6 +11,7 @@ from nerfstudio.engine.schedulers import (
     ExponentialDecaySchedulerConfig,
     MultiStepSchedulerConfig,
 )
+from nerfstudio.configs.base_config import ViewerConfig
 
 plane_gs_method = MethodSpecification(
     config=TrainerConfig(
