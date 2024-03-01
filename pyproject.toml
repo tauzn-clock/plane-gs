@@ -9,5 +9,4 @@ dependencies = ["nerfstudio >= 0.3.0"]
 include = ["plane_gs*"]
 
 [project.entry-points.'nerfstudio.method_configs']
-plane_gs = "plane_gs.plane_gs_configs:plane_gs_method"
-```
+plane_gs = "plane_gs.plane_gs_config:plane_gs_method"
