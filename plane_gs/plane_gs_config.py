@@ -12,23 +12,27 @@ from nerfstudio.engine.schedulers import (
     MultiStepSchedulerConfig,
 )
 from nerfstudio.configs.base_config import ViewerConfig
+from plane_gs.plane_gs_model import PlaneGSModelConfig
 
 plane_gs_method = MethodSpecification(
-    config=TrainerConfig(
+    config = TrainerConfig(
         method_name="plane-gs",
         steps_per_eval_image=100,
         steps_per_eval_batch=0,
         steps_per_save=2000,
         steps_per_eval_all_images=1000,
-        max_num_iterations=30000,
+        max_num_iterations=3000,
         mixed_precision=False,
         gradient_accumulation_steps={"camera_opt": 100},
         pipeline=VanillaPipelineConfig(
             datamanager=FullImageDatamanagerConfig(
-                dataparser=NerfstudioDataParserConfig(load_3D_points=True),
+                dataparser=NerfstudioDataParserConfig(
+                    train_split_fraction = 1.0,
+                    load_3D_points=True
+                ),
                 cache_images_type="uint8",
             ),
-            model=SplatfactoModelConfig(),
+            model=PlaneGSModelConfig(),
         ),
         optimizers={
             "xyz": {
