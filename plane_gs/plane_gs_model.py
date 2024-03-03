@@ -49,6 +49,9 @@ class PlaneGSModel(SplatfactoModel):
         super().__init__(*args, **kwargs)
 
     def populate_modules(self):
+        self.camera_optimizer: CameraOptimizer = self.config.camera_optimizer.setup(
+            num_cameras=self.num_train_data, device="cpu"
+        )
         if self.seed_points is not None and not self.config.random_init:
             self.means = torch.nn.Parameter(self.seed_points[0])  # (Location, Color)
         else:
@@ -83,10 +86,6 @@ class PlaneGSModel(SplatfactoModel):
             self.features_rest = torch.nn.Parameter(torch.zeros((self.num_points, dim_sh - 1, 3)))
 
         self.opacities = torch.nn.Parameter(torch.logit(0.1 * torch.ones(self.num_points, 1)))
-
-        self.camera_optimizer: CameraOptimizer = self.config.camera_optimizer.setup(
-            num_cameras=self.num_train_data, device="cpu"
-        )
         
         # metrics
         from torchmetrics.image import PeakSignalNoiseRatio
@@ -130,11 +129,9 @@ class PlaneGSModel(SplatfactoModel):
             return {}
         assert camera.shape[0] == 1, "Only one camera at a time"
 
-        if self.training:
-            self.camera_optimizer.apply_to_camera(camera)
-
         # get the background color
         if self.training:
+            self.camera_optimizer.apply_to_camera(camera)
             if self.config.background_color == "random":
                 background = torch.rand(3, device=self.device)
             elif self.config.background_color == "white":
@@ -286,3 +283,65 @@ class PlaneGSModel(SplatfactoModel):
             depth_im = torch.where(alpha > 0, depth_im / alpha, depth_im.detach().max())
 
         return {"rgb": rgb, "depth": depth_im, "accumulation": alpha, "background": background}  # type: ignore
+
+    def get_loss_dict(self, outputs, batch, metrics_dict=None) -> Dict[str, torch.Tensor]:
+        """Computes and returns the losses dict.
+
+        Args:
+            outputs: the output to compute loss dict to
+            batch: ground truth batch corresponding to outputs
+            metrics_dict: dictionary of metrics, some of which we can use for loss
+        """
+        gt_img = self.composite_with_background(self.get_gt_img(batch["image"]), outputs["background"])
+        pred_img = outputs["rgb"]
+
+        # Set masked part of both ground-truth and rendered image to black.
+        # This is a little bit sketchy for the SSIM loss.
+        if "mask" in batch:
+            # batch["mask"] : [H, W, 1]
+            assert batch["mask"].shape[:2] == gt_img.shape[:2] == pred_img.shape[:2]
+            mask = batch["mask"].to(self.device)
+            gt_img = gt_img * mask
+            pred_img = pred_img * mask
+
+        Ll1 = torch.abs(gt_img - pred_img).mean()
+        simloss = 1 - self.ssim(gt_img.permute(2, 0, 1)[None, ...], pred_img.permute(2, 0, 1)[None, ...])
+        if self.config.use_scale_regularization and self.step % 10 == 0:
+            scale_exp = torch.exp(self.scales)
+            scale_reg = (
+                torch.maximum(
+                    scale_exp.amax(dim=-1) / scale_exp.amin(dim=-1),
+                    torch.tensor(self.config.max_gauss_ratio),
+                )
+                - self.config.max_gauss_ratio
+            )
+            scale_reg = 0.1 * scale_reg.mean()
+        else:
+            scale_reg = torch.tensor(0.0).to(self.device)
+
+        loss_dict = {
+            "main_loss": (1 - self.config.ssim_lambda) * Ll1 + self.config.ssim_lambda * simloss,
+            "scale_reg": scale_reg,
+        }
+                
+        self.camera_optimizer.get_loss_dict(loss_dict)
+        
+        CONSOLE.log(loss_dict)
+        
+        return loss_dict
+    
+    def get_metrics_dict(self, outputs, batch) -> Dict[str, torch.Tensor]:
+        """Compute and returns metrics.
+
+        Args:
+            outputs: the output to compute loss dict to
+            batch: ground truth batch corresponding to outputs
+        """
+        gt_rgb = self.composite_with_background(self.get_gt_img(batch["image"]), outputs["background"])
+        metrics_dict = {}
+        predicted_rgb = outputs["rgb"]
+        metrics_dict["psnr"] = self.psnr(predicted_rgb, gt_rgb)
+
+        metrics_dict["gaussian_count"] = self.num_points
+        self.camera_optimizer.get_metrics_dict(metrics_dict)
+        return metrics_dict
