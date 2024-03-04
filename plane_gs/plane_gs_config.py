@@ -13,7 +13,7 @@ from nerfstudio.engine.schedulers import (
 )
 from nerfstudio.configs.base_config import ViewerConfig
 from plane_gs.plane_gs_model import PlaneGSModelConfig
-from plane_gs.plane_gs_datamanger import PlaneGSDatamanagerConfig
+from plane_gs.plane_gs_datamanager import PlaneGSDatamanagerConfig
 from plane_gs.inerf_trainer import INerfTrainerConfig
 
 plane_gs_method = MethodSpecification(
