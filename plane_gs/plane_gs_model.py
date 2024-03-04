@@ -326,8 +326,6 @@ class PlaneGSModel(SplatfactoModel):
                 
         self.camera_optimizer.get_loss_dict(loss_dict)
         
-        CONSOLE.log(loss_dict)
-        
         return loss_dict
     
     def get_metrics_dict(self, outputs, batch) -> Dict[str, torch.Tensor]:

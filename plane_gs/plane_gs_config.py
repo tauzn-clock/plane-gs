@@ -13,6 +13,7 @@ from nerfstudio.engine.schedulers import (
 )
 from nerfstudio.configs.base_config import ViewerConfig
 from plane_gs.plane_gs_model import PlaneGSModelConfig
+from plane_gs.plane_gs_datamanger import PlaneGSDatamanagerConfig
 
 plane_gs_method = MethodSpecification(
     config = TrainerConfig(
@@ -23,9 +24,9 @@ plane_gs_method = MethodSpecification(
         steps_per_eval_all_images=1000,
         max_num_iterations=3000,
         mixed_precision=False,
-        gradient_accumulation_steps={"camera_opt": 100},
+        gradient_accumulation_steps={"camera_opt": 1},
         pipeline=VanillaPipelineConfig(
-            datamanager=FullImageDatamanagerConfig(
+            datamanager=PlaneGSDatamanagerConfig(
                 dataparser=NerfstudioDataParserConfig(
                     train_split_fraction = 1.0,
                     load_3D_points=True
