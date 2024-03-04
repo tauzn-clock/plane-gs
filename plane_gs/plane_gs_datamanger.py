@@ -26,7 +26,7 @@ class PlaneGSDatamanager(FullImageDatamanager, Generic[TDataset]):
 
         Returns a Camera instead of raybundle"""
         image_idx = self.train_unseen_cameras.pop(random.randint(0, len(self.train_unseen_cameras) - 1))
-        CONSOLE.log(image_idx)
+
         # Make sure to re-populate the unseen cameras list if we have exhausted it
         if len(self.train_unseen_cameras) == 0:
             self.train_unseen_cameras = [i for i in range(len(self.train_dataset))]

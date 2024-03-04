@@ -343,3 +343,6 @@ class PlaneGSModel(SplatfactoModel):
         metrics_dict["gaussian_count"] = self.num_points
         self.camera_optimizer.get_metrics_dict(metrics_dict)
         return metrics_dict
+
+
+    
