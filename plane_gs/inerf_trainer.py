@@ -77,11 +77,6 @@ class INerfTrainer(Trainer):
         ]
         self.optimizers.optimizer_scaler_step_some(self.grad_scaler, needs_step)
 
-        print(self.optimizers.parameters["camera_opt"][0])
-        print(self.optimizers.parameters["camera_opt"][0].grad)
-        #Print non zero gradients in self.optimizers.parameters["camera_opt"][0].grad
-        print(self.optimizers.parameters["camera_opt"][0].grad.nonzero())
-
         if self.config.log_gradients:
             total_grad = 0
             for tag, value in self.pipeline.model.named_parameters():

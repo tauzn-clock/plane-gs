@@ -22,7 +22,7 @@ from nerfstudio.utils.rich_utils import CONSOLE
 from nerfstudio.cameras.camera_optimizers import CameraOptimizer, CameraOptimizerConfig
 from nerfstudio.cameras.cameras import Cameras
 from nerfstudio.model_components import renderers
-
+from nerfstudio.model_components.losses import MSELoss
 @dataclass
 class PlaneGSModelConfig(SplatfactoModelConfig):
     """Splatfacto Model Config, nerfstudio's implementation of Gaussian Splatting"""
@@ -128,10 +128,9 @@ class PlaneGSModel(SplatfactoModel):
             print("Called get_outputs with not a camera")
             return {}
         assert camera.shape[0] == 1, "Only one camera at a time"
-
         # get the background color
         if self.training:
-            self.camera_optimizer.apply_to_camera(camera)
+            self.camera_optimizer.apply_to_camera(camera)        
             if self.config.background_color == "random":
                 background = torch.rand(3, device=self.device)
             elif self.config.background_color == "white":
@@ -216,7 +215,6 @@ class PlaneGSModel(SplatfactoModel):
             W,
             tile_bounds,
         )  # type: ignore
-
         # rescale the camera back to original dimensions before returning
         camera.rescale_output_resolution(camera_downscale)
 
@@ -323,7 +321,7 @@ class PlaneGSModel(SplatfactoModel):
             "main_loss": (1 - self.config.ssim_lambda) * Ll1 + self.config.ssim_lambda * simloss,
             "scale_reg": scale_reg,
         }
-                
+        
         self.camera_optimizer.get_loss_dict(loss_dict)
         
         return loss_dict
@@ -344,5 +342,26 @@ class PlaneGSModel(SplatfactoModel):
         self.camera_optimizer.get_metrics_dict(metrics_dict)
         return metrics_dict
 
+    def get_outputs_for_camera(self, camera: Cameras, obb_box: Optional[OrientedBox] = None) -> Dict[str, torch.Tensor]:
+        """Takes in a camera, generates the raybundle, and computes the output of the model.
+        Overridden for a camera-based gaussian model.
 
-    
+        Args:
+            camera: generates raybundle
+        """
+        assert camera is not None, "must provide camera to gaussian model"
+        self.set_crop(obb_box)
+        outs = self.get_outputs(camera.to(self.device))
+        return outs  # type: ignore
+
+    def get_outputs_for_camera(self, camera: Cameras, obb_box: Optional[OrientedBox] = None) -> Dict[str, torch.Tensor]:
+        """Takes in a camera, generates the raybundle, and computes the output of the model.
+        Overridden for a camera-based gaussian model.
+
+        Args:
+            camera: generates raybundle
+        """
+        assert camera is not None, "must provide camera to gaussian model"
+        self.set_crop(obb_box)
+        outs = self.get_outputs(camera.to(self.device))
+        return outs  # type: ignore

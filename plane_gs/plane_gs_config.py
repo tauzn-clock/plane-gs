@@ -17,7 +17,7 @@ from plane_gs.plane_gs_datamanager import PlaneGSDatamanagerConfig
 from plane_gs.inerf_trainer import INerfTrainerConfig
 
 plane_gs_method = MethodSpecification(
-    config = TrainerConfig(
+    config = INerfTrainerConfig(
         method_name="plane-gs",
         steps_per_eval_image=100,
         steps_per_eval_batch=0,
